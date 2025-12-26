@@ -1,13 +1,12 @@
 "use client"
 
-import type React from "react"
-
+import React from "react"
 import { useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
-import { ChevronLeft, Upload, X, AlertCircle } from "lucide-react"
+import { ChevronLeft, Upload, X, AlertCircle, Download } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { validateImageFile, optimizeImage, validateImageDimensions } from "@/lib/image-utils"
 import { createCollage, buildPhotoModePrompt } from "@/lib/collage-utils"
@@ -24,45 +23,52 @@ export default function PhotoMode({ onBack }: PhotoModeProps) {
   const [resultImage, setResultImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Add debugging when component loads
+  React.useEffect(() => {
+    console.log("[PHOTO-MODE] Component loaded - Photo Mode initialized")
+    console.log("[PHOTO-MODE] API endpoint available at: /api/generate-outfit")
+    console.log("[PHOTO-MODE] Ready to accept body image and clothing uploads")
+  }, [])
+
   const handleBodyImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError(null)
     const file = e.target.files?.[0]
     if (!file) return
 
-    console.log("[v0] DEBUG: Body image upload started")
+    console.log("[PHOTO-MODE] Body image upload started")
 
     const validation = validateImageFile(file)
     if (!validation.valid) {
-      console.log(`[v0] ERROR: File validation failed - ${validation.error}`)
+      console.log(`[PHOTO-MODE] ERROR: File validation failed - ${validation.error}`)
       setError(validation.error || "Invalid image")
       return
     }
 
-    console.log("[v0] DEBUG: File validation passed")
+    console.log("[PHOTO-MODE] File validation passed")
 
     const dimensionCheck = await validateImageDimensions(file)
     if (!dimensionCheck.valid) {
-      console.log(`[v0] ERROR: Dimension check failed - ${dimensionCheck.error}`)
+      console.log(`[PHOTO-MODE] ERROR: Dimension check failed - ${dimensionCheck.error}`)
       setError(dimensionCheck.error || "Image dimensions invalid")
       return
     }
 
-    console.log("[v0] DEBUG: Dimension validation passed")
+    console.log("[PHOTO-MODE] Dimension validation passed")
 
     try {
-      console.log("[v0] DEBUG: Starting image optimization...")
+      console.log("[PHOTO-MODE] Starting image optimization...")
       const optimized = await optimizeImage(file)
-      console.log(`[v0] DEBUG: Image optimized - original: ${file.size}B, optimized: ${optimized.size}B`)
+      console.log(`[PHOTO-MODE] Image optimized - original: ${file.size}B, optimized: ${optimized.size}B`)
 
       const optimizedFile = new File([optimized], file.name, { type: "image/jpeg" })
 
       setBodyImage(optimizedFile)
       const preview = URL.createObjectURL(optimized)
       setBodyPreview(preview)
-      console.log("[v0] DEBUG: Body image set successfully")
+      console.log("[PHOTO-MODE] Body image set successfully")
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error"
-      console.log(`[v0] ERROR: Image optimization failed - ${errorMsg}`)
+      console.log(`[PHOTO-MODE] ERROR: Image optimization failed - ${errorMsg}`)
       setError("Failed to process image. Please try a different file.")
     }
   }
@@ -72,55 +78,55 @@ export default function PhotoMode({ onBack }: PhotoModeProps) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    console.log(`[v0] DEBUG: Clothing upload started for type: ${type}`)
+    console.log(`[PHOTO-MODE] Clothing upload started for type: ${type}`)
 
     const validation = validateImageFile(file)
     if (!validation.valid) {
-      console.log(`[v0] ERROR: Clothing file validation failed - ${validation.error}`)
+      console.log(`[PHOTO-MODE] ERROR: Clothing file validation failed - ${validation.error}`)
       setError(validation.error || "Invalid image")
       return
     }
 
-    console.log(`[v0] DEBUG: Clothing validation passed for ${type}`)
+    console.log(`[PHOTO-MODE] Clothing validation passed for ${type}`)
 
     try {
-      console.log(`[v0] DEBUG: Starting optimization for ${type}...`)
+      console.log(`[PHOTO-MODE] Starting optimization for ${type}...`)
       const optimized = await optimizeImage(file)
-      console.log(`[v0] DEBUG: ${type} optimized - original: ${file.size}B, optimized: ${optimized.size}B`)
+      console.log(`[PHOTO-MODE] ${type} optimized - original: ${file.size}B, optimized: ${optimized.size}B`)
 
       const optimizedFile = new File([optimized], file.name, { type: "image/jpeg" })
       const preview = URL.createObjectURL(optimized)
 
       setClothingItems((prev) => [...prev.filter((item) => item.type !== type), { type, file: optimizedFile, preview }])
-      console.log(`[v0] DEBUG: ${type} added to clothing items`)
+      console.log(`[PHOTO-MODE] ${type} added to clothing items`)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error"
-      console.log(`[v0] ERROR: Clothing optimization failed for ${type} - ${errorMsg}`)
+      console.log(`[PHOTO-MODE] ERROR: Clothing optimization failed for ${type} - ${errorMsg}`)
       setError("Failed to process clothing image. Please try a different file.")
     }
   }
 
   const removeClothing = (type: string) => {
-    console.log(`[v0] DEBUG: Removing clothing item: ${type}`)
+    console.log(`[PHOTO-MODE] Removing clothing item: ${type}`)
     setClothingItems((prev) => prev.filter((item) => item.type !== type))
   }
 
   const handleGenerate = async () => {
     setError(null)
-    console.log("[v0] DEBUG: Generate button clicked")
+    console.log("[PHOTO-MODE] Generate button clicked")
 
     if (!bodyImage || clothingItems.length === 0) {
       const errorMsg = "Please upload a body image and at least one clothing item"
-      console.log(`[v0] ERROR: Validation failed - ${errorMsg}`)
+      console.log(`[PHOTO-MODE] ERROR: Validation failed - ${errorMsg}`)
       setError(errorMsg)
       return
     }
 
-    console.log(`[v0] DEBUG: Validation passed - body image: yes, clothing items: ${clothingItems.length}`)
+    console.log(`[PHOTO-MODE] Validation passed - body image: yes, clothing items: ${clothingItems.length}`)
 
     setIsGenerating(true)
     try {
-      console.log("[v0] DEBUG: Starting collage creation...")
+      console.log("[PHOTO-MODE] Starting collage creation...")
       const allImages = [
         { file: bodyImage, type: "body" },
         ...clothingItems.map((item) => ({ file: item.file, type: item.type })),
@@ -128,47 +134,71 @@ export default function PhotoMode({ onBack }: PhotoModeProps) {
 
       const collageBlob = await createCollage(allImages)
       const collageFile = new File([collageBlob], "collage.jpg", { type: "image/jpeg" })
-      console.log(`[v0] DEBUG: Collage created - size: ${collageFile.size}B`)
+      console.log(`[PHOTO-MODE] Collage created - size: ${collageFile.size}B`)
 
       const prompt = buildPhotoModePrompt(clothingItems.map((item) => item.type))
-      console.log(`[v0] DEBUG: Prompt built - length: ${prompt.length} characters`)
+      console.log(`[PHOTO-MODE] Prompt built - length: ${prompt.length} characters`)
 
       const formData = new FormData()
       formData.append("collage", collageFile)
       formData.append("prompt", prompt)
       formData.append("mode", "photo")
 
-      console.log("[v0] DEBUG: FormData prepared, sending to API...")
+      console.log("[PHOTO-MODE] FormData prepared, sending to API...")
       const response = await fetch("/api/generate-outfit", {
         method: "POST",
         body: formData,
       })
 
-      console.log(`[v0] DEBUG: API response status: ${response.status}`)
+      console.log(`[PHOTO-MODE] API response status: ${response.status}`)
 
       if (!response.ok) {
-        console.log("[v0] DEBUG: Response not OK, attempting to parse error...")
+        console.log("[PHOTO-MODE] Response not OK, attempting to parse error...")
         const errorData = await response.json().catch(() => {
-          console.log("[v0] DEBUG: Could not parse error JSON")
+          console.log("[PHOTO-MODE] Could not parse error JSON")
           return {}
         })
-        console.log(`[v0] ERROR: API error response - ${JSON.stringify(errorData)}`)
+        console.log(`[PHOTO-MODE] ERROR: API error response - ${JSON.stringify(errorData)}`)
         throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
-      console.log("[v0] DEBUG: Parsing response blob...")
+      console.log("[PHOTO-MODE] Parsing response blob...")
       const blob = await response.blob()
-      console.log(`[v0] DEBUG: Blob received - size: ${blob.size}B, type: ${blob.type}`)
+      console.log(`[PHOTO-MODE] Blob received - size: ${blob.size}B, type: ${blob.type}`)
 
       const imageUrl = URL.createObjectURL(blob)
       setResultImage(imageUrl)
-      console.log("[v0] DEBUG: Result image set successfully")
+      console.log("[PHOTO-MODE] Result image set successfully")
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to generate outfit"
-      console.error("[v0] FATAL ERROR in handleGenerate:", err)
+      console.error("[PHOTO-MODE] FATAL ERROR in handleGenerate:", err)
       setError(message)
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const handleDownload = async () => {
+    if (!resultImage) return
+
+    try {
+      console.log("[PHOTO-MODE] Starting download...")
+      const response = await fetch(resultImage)
+      const blob = await response.blob()
+      
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `photo-outfit-${Date.now()}.jpg`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+      console.log("[PHOTO-MODE] Download completed")
+    } catch (err) {
+      console.error("[PHOTO-MODE] Download failed:", err)
+      setError("Failed to download image")
     }
   }
 
@@ -316,6 +346,14 @@ export default function PhotoMode({ onBack }: PhotoModeProps) {
                     fill
                     className="object-contain"
                   />
+                  {/* Download button overlay */}
+                  <button
+                    onClick={handleDownload}
+                    className="absolute top-2 right-2 bg-primary text-primary-foreground p-2 rounded-lg hover:bg-primary/90 transition-colors"
+                    title="Download image"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
                 </div>
               ) : (
                 <p className="text-muted-foreground text-center px-4">
