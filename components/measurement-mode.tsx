@@ -1,6 +1,7 @@
 "use client"
 
-import React from "react"
+import type React from "react"
+
 import { useState } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Field, FieldLabel, FieldDescription, FieldGroup, FieldSet } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
-import { ChevronLeft, Upload, X, AlertCircle, Download } from "lucide-react"
+import { ChevronLeft, Upload, X, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { validateImageFile, optimizeImage } from "@/lib/image-utils"
 import { createCollage, buildMannequinOutfitPrompt } from "@/lib/collage-utils"
@@ -25,7 +26,6 @@ interface Measurements {
   waist: string
   hip: string
   legHeight: string
-  shoulderWidth: string
   isHijabi: boolean
 }
 
@@ -37,7 +37,6 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
     waist: "",
     hip: "",
     legHeight: "",
-    shoulderWidth: "",
     isHijabi: false,
   })
   const [clothingItems, setClothingItems] = useState<{ type: string; file: File; preview: string }[]>([])
@@ -45,15 +44,8 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
   const [resultImage, setResultImage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Add debugging when component loads
-  React.useEffect(() => {
-    console.log("[MEASUREMENT-MODE] Component loaded - Measurement Mode initialized")
-    console.log("[MEASUREMENT-MODE] API endpoint available at: /api/generate-outfit")
-    console.log("[MEASUREMENT-MODE] Ready to accept measurements and clothing uploads")
-  }, [])
-
   const handleInputChange = (field: string, value: string | boolean) => {
-    console.log(`[MEASUREMENT-MODE] Input changed - field: ${field}, value: ${value}`)
+    console.log(`[v0] DEBUG: Input changed - field: ${field}, value: ${value}`)
     setMeasurements((prev) => ({ ...prev, [field]: value }))
     setError(null)
   }
@@ -63,55 +55,55 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    console.log(`[MEASUREMENT-MODE] Clothing upload started for ${type}`)
+    console.log(`[v0] DEBUG: Clothing upload started for ${type}`)
 
     const validation = validateImageFile(file)
     if (!validation.valid) {
-      console.log(`[MEASUREMENT-MODE] ERROR: Validation failed - ${validation.error}`)
+      console.log(`[v0] ERROR: Validation failed - ${validation.error}`)
       setError(validation.error || "Invalid image")
       return
     }
 
     try {
-      console.log(`[MEASUREMENT-MODE] Optimizing image for ${type}...`)
+      console.log(`[v0] DEBUG: Optimizing image for ${type}...`)
       const optimized = await optimizeImage(file)
-      console.log(`[MEASUREMENT-MODE] Image optimized - size: ${optimized.size}B`)
+      console.log(`[v0] DEBUG: Image optimized - size: ${optimized.size}B`)
 
       const optimizedFile = new File([optimized], file.name, { type: "image/jpeg" })
       const preview = URL.createObjectURL(optimized)
       setClothingItems((prev) => [...prev.filter((item) => item.type !== type), { type, file: optimizedFile, preview }])
-      console.log(`[MEASUREMENT-MODE] ${type} added successfully`)
+      console.log(`[v0] DEBUG: ${type} added successfully`)
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error"
-      console.log(`[MEASUREMENT-MODE] ERROR: ${errorMsg}`)
+      console.log(`[v0] ERROR: ${errorMsg}`)
       setError("Failed to process clothing image. Please try a different file.")
     }
   }
 
   const removeClothing = (type: string) => {
-    console.log(`[MEASUREMENT-MODE] Removing ${type}`)
+    console.log(`[v0] DEBUG: Removing ${type}`)
     setClothingItems((prev) => prev.filter((item) => item.type !== type))
   }
 
   const handleGenerate = async () => {
     setError(null)
-    console.log("[MEASUREMENT-MODE] Generate clicked")
+    console.log("[v0] DEBUG: Generate clicked")
 
     if (!measurements.height) {
       setError("Height is required")
-      console.log("[MEASUREMENT-MODE] ERROR: Height missing")
+      console.log("[v0] ERROR: Height missing")
       return
     }
 
-    if (!measurements.chest || !measurements.waist || !measurements.hip || !measurements.legHeight || !measurements.shoulderWidth) {
-      setError("All measurements (chest, waist, hip, leg height, shoulder width) are required")
-      console.log("[MEASUREMENT-MODE] ERROR: Missing measurements")
+    if (!measurements.chest || !measurements.waist || !measurements.hip || !measurements.legHeight) {
+      setError("All measurements (chest, waist, hip, leg height) are required")
+      console.log("[v0] ERROR: Missing measurements")
       return
     }
 
     if (clothingItems.length === 0) {
       setError("Please upload at least one clothing item")
-      console.log("[MEASUREMENT-MODE] ERROR: No clothing items")
+      console.log("[v0] ERROR: No clothing items")
       return
     }
 
@@ -119,25 +111,25 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
 
     if (Number.isNaN(height) || height <= 0) {
       setError("Height must be a valid positive number")
-      console.log("[MEASUREMENT-MODE] ERROR: Invalid height")
+      console.log("[v0] ERROR: Invalid height")
       return
     }
 
-    console.log(`[MEASUREMENT-MODE] All validations passed - measurements ready: height=${height}`)
+    console.log(`[v0] DEBUG: All validations passed - measurements ready: height=${height}`)
 
     setIsGenerating(true)
     try {
-      console.log("[MEASUREMENT-MODE] Creating collage...")
+      console.log("[v0] DEBUG: Creating collage...")
       const collageBlob = await createCollage(clothingItems.map((item) => ({ file: item.file, type: item.type })))
       const collageFile = new File([collageBlob], "clothing-collage.jpg", { type: "image/jpeg" })
-      console.log(`[MEASUREMENT-MODE] Collage created - size: ${collageFile.size}B`)
+      console.log(`[v0] DEBUG: Collage created - size: ${collageFile.size}B`)
 
-      console.log("[MEASUREMENT-MODE] Building prompt...")
+      console.log("[v0] DEBUG: Building prompt...")
       const prompt = buildMannequinOutfitPrompt(
         measurements,
         clothingItems.map((item) => item.type),
       )
-      console.log(`[MEASUREMENT-MODE] Prompt built - length: ${prompt.length}`)
+      console.log(`[v0] DEBUG: Prompt built - length: ${prompt.length}`)
 
       const formData = new FormData()
       formData.append("collage", collageFile)
@@ -145,61 +137,37 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
       formData.append("mode", "mannequin")
       formData.append("measurements", JSON.stringify(measurements))
 
-      console.log("[MEASUREMENT-MODE] FormData prepared, sending to API...")
+      console.log("[v0] DEBUG: FormData prepared, sending to API...")
       const response = await fetch("/api/generate-outfit", {
         method: "POST",
         body: formData,
       })
 
-      console.log(`[MEASUREMENT-MODE] API response status: ${response.status}`)
+      console.log(`[v0] DEBUG: API response status: ${response.status}`)
 
       if (!response.ok) {
-        console.log("[MEASUREMENT-MODE] Parsing error response...")
+        console.log("[v0] DEBUG: Parsing error response...")
         const errorData = await response.json().catch(() => {
-          console.log("[MEASUREMENT-MODE] Could not parse error JSON")
+          console.log("[v0] DEBUG: Could not parse error JSON")
           return {}
         })
-        console.log(`[MEASUREMENT-MODE] ERROR: ${JSON.stringify(errorData)}`)
+        console.log(`[v0] ERROR: ${JSON.stringify(errorData)}`)
         throw new Error(errorData.error || `HTTP ${response.status}`)
       }
 
-      console.log("[MEASUREMENT-MODE] Parsing response blob...")
+      console.log("[v0] DEBUG: Parsing response blob...")
       const blob = await response.blob()
-      console.log(`[MEASUREMENT-MODE] Blob received - size: ${blob.size}B`)
+      console.log(`[v0] DEBUG: Blob received - size: ${blob.size}B`)
 
       const imageUrl = URL.createObjectURL(blob)
       setResultImage(imageUrl)
-      console.log("[MEASUREMENT-MODE] Result set successfully")
+      console.log("[v0] DEBUG: Result set successfully")
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to generate outfit"
-      console.error("[MEASUREMENT-MODE] FATAL ERROR:", err)
+      console.error("[v0] FATAL ERROR:", err)
       setError(message)
     } finally {
       setIsGenerating(false)
-    }
-  }
-
-  const handleDownload = async () => {
-    if (!resultImage) return
-
-    try {
-      console.log("[MEASUREMENT-MODE] Starting download...")
-      const response = await fetch(resultImage)
-      const blob = await response.blob()
-      
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `mannequin-outfit-${Date.now()}.jpg`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-      
-      console.log("[MEASUREMENT-MODE] Download completed")
-    } catch (err) {
-      console.error("[MEASUREMENT-MODE] Download failed:", err)
-      setError("Failed to download image")
     }
   }
 
@@ -227,22 +195,11 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle>Your Measurements</CardTitle>
-              <CardDescription>All fields required for accurate fitting</CardDescription>
+              <CardDescription>All fields required</CardDescription>
             </CardHeader>
             <CardContent>
               <FieldSet>
                 <FieldGroup className="space-y-4">
-                  {/* Measurement Guide */}
-                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="text-sm font-medium text-blue-900 mb-2">📏 Measurement Guide</h4>
-                    <ul className="text-xs text-blue-800 space-y-1">
-                      <li>• <strong>Chest:</strong> Around fullest part of chest</li>
-                      <li>• <strong>Waist:</strong> Around narrowest part of waist</li>
-                      <li>• <strong>Hip:</strong> Around fullest part of hips</li>
-                      <li>• <strong>Shoulder:</strong> From shoulder tip to tip</li>
-                      <li>• <strong>Leg Height:</strong> From waist to floor</li>
-                    </ul>
-                  </div>
                   <Field>
                     <FieldLabel htmlFor="height" className="text-xs">
                       Height (cm)
@@ -254,7 +211,7 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
                       value={measurements.height}
                       onChange={(e) => handleInputChange("height", e.target.value)}
                     />
-                    <FieldDescription className="text-xs">Any height (kids welcome!)</FieldDescription>
+                    <FieldDescription className="text-xs">Any height</FieldDescription>
                   </Field>
 
                   <div className="grid grid-cols-2 gap-3">
@@ -298,32 +255,18 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
                       />
                     </Field>
                     <Field>
-                      <FieldLabel htmlFor="shoulderWidth" className="text-xs">
-                        Shoulder Width (cm)
+                      <FieldLabel htmlFor="legHeight" className="text-xs">
+                        Leg Height (cm)
                       </FieldLabel>
                       <Input
-                        id="shoulderWidth"
+                        id="legHeight"
                         type="number"
-                        placeholder="40"
-                        value={measurements.shoulderWidth}
-                        onChange={(e) => handleInputChange("shoulderWidth", e.target.value)}
+                        placeholder="85"
+                        value={measurements.legHeight}
+                        onChange={(e) => handleInputChange("legHeight", e.target.value)}
                       />
                     </Field>
                   </div>
-
-                  <Field>
-                    <FieldLabel htmlFor="legHeight" className="text-xs">
-                      Leg Height (cm)
-                    </FieldLabel>
-                    <Input
-                      id="legHeight"
-                      type="number"
-                      placeholder="85"
-                      value={measurements.legHeight}
-                      onChange={(e) => handleInputChange("legHeight", e.target.value)}
-                    />
-                    <FieldDescription className="text-xs">From waist to floor</FieldDescription>
-                  </Field>
 
                   <Field>
                     <FieldLabel htmlFor="gender" className="text-xs">
@@ -430,14 +373,6 @@ export default function MeasurementMode({ onBack }: MeasurementModeProps) {
                     fill
                     className="object-contain"
                   />
-                  {/* Download button overlay */}
-                  <button
-                    onClick={handleDownload}
-                    className="absolute top-2 right-2 bg-primary text-primary-foreground p-2 rounded-lg hover:bg-primary/90 transition-colors"
-                    title="Download image"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground text-center px-3">

@@ -13,7 +13,7 @@ export async function createCollage(
   images: { file: File; type: string }[],
   options: CollageOptions = {},
 ): Promise<Blob> {
-  const { spacing = 30, padding = 30, backgroundColor = "#ffffff" } = options
+  const { spacing = 20, padding = 20, backgroundColor = "#ffffff" } = options
 
   return new Promise((resolve, reject) => {
     const loadedImages: { img: HTMLImageElement; type: string }[] = []
@@ -62,21 +62,14 @@ function createCollageCanvas(
     return
   }
 
-  // Calculate dimensions - arrange horizontally with consistent height
-  const targetHeight = 500 // Increased height for better quality
+  // Calculate dimensions - arrange horizontally
+  const targetHeight = 400 // Standard height for all images
   let totalWidth = padding * 2
 
-  // Sort images to put body photo first if it exists
-  const sortedImages = loadedImages.sort((a, b) => {
-    if (a.type === "body") return -1
-    if (b.type === "body") return 1
-    return 0
-  })
-
-  const scaledImages = sortedImages.map(({ img, type }) => {
+  const scaledImages = loadedImages.map(({ img }) => {
     const scale = targetHeight / img.height
     const width = img.width * scale
-    return { width, height: targetHeight, type }
+    return { width, height: targetHeight }
   })
 
   totalWidth += scaledImages.reduce((acc, img, idx) => {
@@ -90,36 +83,16 @@ function createCollageCanvas(
   ctx.fillStyle = backgroundColor
   ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-  // Add subtle border for better visibility
-  ctx.strokeStyle = "#e5e5e5"
-  ctx.lineWidth = 2
-  ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2)
-
-  // Draw images with labels
+  // Draw images
   let xPosition = padding
 
-  sortedImages.forEach(({ img, type }, index) => {
+  loadedImages.forEach(({ img }, index) => {
     const { width, height } = scaledImages[index]
-    
-    // Draw image
     ctx.drawImage(img, xPosition, padding, width, height)
-    
-    // Add subtle border around each image
-    ctx.strokeStyle = "#d1d5db"
-    ctx.lineWidth = 1
-    ctx.strokeRect(xPosition, padding, width, height)
-    
-    // Add label below image
-    ctx.fillStyle = "#374151"
-    ctx.font = "14px Arial, sans-serif"
-    ctx.textAlign = "center"
-    const labelText = type === "body" ? "Person" : type
-    ctx.fillText(labelText, xPosition + width / 2, padding + height + 20)
-    
     xPosition += width + spacing
   })
 
-  // Convert to blob with higher quality
+  // Convert to blob
   canvas.toBlob(
     (blob) => {
       if (blob) {
@@ -129,7 +102,7 @@ function createCollageCanvas(
       }
     },
     "image/jpeg",
-    0.9, // Higher quality
+    0.85,
   )
 }
 
@@ -139,24 +112,26 @@ function createCollageCanvas(
 export function buildPhotoModePrompt(clothingTypes: string[]): string {
   const clothingList = clothingTypes.join(", ")
 
-  return `I want to see how I would look wearing the clothes shown next to me in this collage image.
+  return `You are an expert fashion visualizer. The user has provided a collage image containing:
+1. Their full-body photo on the LEFT side
+2. Individual clothing items on the RIGHT side: ${clothingList}
 
-The clothing items I want to try on: ${clothingList}
+Your task: Create a highly realistic image of the person from the left side of the collage now wearing ALL the clothing items shown on the right side of the collage. 
 
-INSTRUCTIONS:
-- The collage shows me on the left side and the clothing items on the right side
-- Show me wearing all the clothing items from the collage
-- Keep my natural appearance and body proportions
-- Ensure all clothing items fit properly on my body:
-  * TOP: Fitted properly on my upper body
-  * BOTTOM: Fitted properly on my lower body  
-  * SHOES: On my feet
-- Keep my natural pose and stance
-- Clean, neutral background
-- Professional fashion photography style
-- Focus on showing how the complete outfit looks on me
+CRITICAL INSTRUCTIONS:
+- Maintain the person's face, head shape, skin tone, and body proportions EXACTLY as shown
+- The person should appear to be standing in a natural pose, facing forward
+- Dress them realistically in ALL the provided clothing items:
+  * If a TOP is provided: wear it properly fitted
+  * If BOTTOM is provided: wear it properly fitted
+  * If SHOES are provided: wear them on their feet
+- The clothing should fit naturally on their body - not oversized or undersized
+- The background should be clean and simple (white or neutral)
+- The overall lighting and skin tone should match the original photo
+- Generate a complete, professional-looking outfit visualization
+- The person should look like themselves, just in the new outfit
 
-Generate an image of me wearing the clothing items shown next to me in the collage.`
+Output ONLY the image of the person in the outfit. Do not include the original clothing items or collage in the output.`
 }
 
 /**
@@ -210,17 +185,17 @@ Generate ONLY the mannequin. Do not add any clothing items yet - they will be ad
 }
 
 /**
- * Builds system prompt for dressing the mannequin with detailed measurements
+ * Builds system prompt for dressing the mannequin
  */
 export function buildMannequinOutfitPrompt(
   measurements: {
     height: string
+    weight?: string
     gender: string
     chest?: string
     waist?: string
     hip?: string
     legHeight?: string
-    shoulderWidth?: string
     isHijabi?: boolean
   },
   clothingTypes: string[],
@@ -229,45 +204,31 @@ export function buildMannequinOutfitPrompt(
 
   let hijabNote = ""
   if (measurements.gender === "female" && measurements.isHijabi) {
-    hijabNote = `
-HIJAB STYLING REQUIREMENTS:
-- The mannequin should wear a hijab covering the head and neck
-- Ensure modest styling with appropriate coverage
-- The clothing should complement the hijab styling`
+    hijabNote = `The mannequin is wearing hijab styling. Ensure the clothing fits over/with the hijab appropriately.`
   }
 
-  return `You are an expert fashion visualizer and mannequin creator. You have been provided with clothing items in a collage image: ${clothingList}
+  return `You are an expert fashion visualizer. You have been provided with:
+1. A fashion mannequin image (left side of collage)
+2. Clothing items to dress it in (right side of collage): ${clothingList}
 
-Your task: Create a realistic fashion mannequin with the specified measurements wearing ALL the provided clothing items.
-
-MANNEQUIN SPECIFICATIONS:
-- Gender: ${measurements.gender}
-- Height: ${measurements.height} cm (can be any height - kids welcome!)
-${measurements.chest ? `- Chest: ${measurements.chest} cm` : ""}
-${measurements.waist ? `- Waist: ${measurements.waist} cm` : ""}
-${measurements.hip ? `- Hip: ${measurements.hip} cm` : ""}
-${measurements.legHeight ? `- Leg height: ${measurements.legHeight} cm` : ""}
-${measurements.shoulderWidth ? `- Shoulder width: ${measurements.shoulderWidth} cm` : ""}
+Your task: Take the mannequin and realistically dress it in ALL the provided clothing items shown in the collage.
 
 CRITICAL INSTRUCTIONS:
-- Create a professional fashion mannequin/model with realistic human proportions matching the exact measurements above
-- The mannequin should have a body type that corresponds to the provided measurements
-- Apply ALL clothing items from the collage naturally and realistically:
-  * TOP: Fit properly on the upper body according to chest and shoulder measurements
-  * BOTTOM: Fit properly on the lower body according to waist and hip measurements  
-  * SHOES: Place appropriately on the feet
-- The clothing should fit naturally based on the body measurements - not too tight or too loose
-- Standing pose, facing forward, arms at sides or slightly away from body
-- Clean, neutral background (white or light gray)
-- Professional fashion photography quality with good lighting
-- The mannequin should look proportional and realistic${hijabNote}
+- Keep the mannequin's body shape and proportions EXACTLY as shown
+- Height: ${measurements.height} cm
+${measurements.chest ? `- Chest measurement: ${measurements.chest} cm` : ""}
+${measurements.waist ? `- Waist measurement: ${measurements.waist} cm` : ""}
+${measurements.hip ? `- Hip measurement: ${measurements.hip} cm` : ""}
+${measurements.legHeight ? `- Leg height: ${measurements.legHeight} cm` : ""}
+- Apply ALL clothing items from the collage:
+  * TOP: Fit it properly on the upper body
+  * BOTTOM: Fit it properly on the lower body
+  * SHOES: Place them on the feet
+${hijabNote}
+- The clothing should fit naturally based on the body measurements
+- Maintain realistic proportions and fitting
+- Keep the same pose and background
+- Professional fashion visualization quality
 
-FITTING GUIDELINES:
-- Use the chest and shoulder measurements for top sizing
-- Use the waist and hip measurements for bottom sizing
-- Ensure the leg height creates proper proportions
-- The overall height should create a realistic human silhouette
-- Pay attention to how the clothing drapes and fits on the body type
-
-Output ONLY the mannequin wearing the complete outfit. Do not include the collage or original clothing items in the output.`
+Output ONLY the mannequin in the complete outfit. Do not include the collage or original clothing items.`
 }
