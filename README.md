@@ -22,8 +22,8 @@ Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Vercel AI SDK · Googl
 ## 🚀 Getting started
 
 ```bash
-git clone https://github.com/Aser-S/v0-outfit-try-on-app.git
-cd v0-outfit-try-on-app
+git clone https://github.com/Aser-S/AI-Outfit-Try-On.git
+cd AI-Outfit-Try-On
 pnpm install
 # add your Gemini API key to .env.local
 pnpm dev
