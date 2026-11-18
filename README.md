@@ -1,30 +1,32 @@
-# Outfit try on app
+# 👗 Outfit Try-On App
 
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
+![Gemini](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=flat-square&logo=googlegemini&logoColor=white)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com/mohamedgamalledu-9954s-projects/v0-outfit-try-on-app)
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/mohamedgamalledu-9954s-projects/v0-outfit-try-on-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/uh7h8iMsBuI)
+A web app for virtually trying on outfits: upload a photo, enter your measurements, and see AI-generated looks on a mannequin built from your body shape.
 
-## Overview
+## ✨ Features
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+- 📤 Upload a photo and add your measurements
+- 🧍 AI-generated **mannequin** (`/api/generate-mannequin`)
+- 👚 AI-generated **outfit try-on** (`/api/generate-outfit`)
+- 🎨 Responsive UI with shadcn/ui components
 
-## Deployment
+## 🧱 Tech stack
 
-Your project is live at:
+Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Vercel AI SDK · Google Gemini · built with v0
 
-**[https://vercel.com/mohamedgamalledu-9954s-projects/v0-outfit-try-on-app](https://vercel.com/mohamedgamalledu-9954s-projects/v0-outfit-try-on-app)**
+## 🚀 Getting started
 
-## Build your app
+```bash
+git clone https://github.com/Aser-S/v0-outfit-try-on-app.git
+cd v0-outfit-try-on-app
+pnpm install
+# add your Gemini API key to .env.local
+pnpm dev
+```
 
-Continue building your app on:
-
-**[https://v0.app/chat/uh7h8iMsBuI](https://v0.app/chat/uh7h8iMsBuI)**
-
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+Open http://localhost:3000.
